@@ -318,28 +318,28 @@ function OrderCard({ order, onDelete }) {
           <span className="text-2xl font-bold text-indigo-600 tracking-tight">₹{(order.pricing?.total || order.total || order.items?.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0)?.toLocaleString()}</span>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 pt-5 mt-2 border-t border-slate-100/60">
           <Link
             to={`/user/orders/${order._id}`}
-            className="flex-1 flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-600 hover:shadow-lg transition-all active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-3.5 px-4 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-indigo-600 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all w-full sm:w-auto"
           >
-            <Eye size={16} /> View Order Details
+            <Eye size={16} /> View Details
           </Link>
 
           {isDelivered && (
             <Link
               to="/user/returns"
-              className="flex-1 flex items-center justify-center gap-3 bg-indigo-600 text-white py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 hover:shadow-lg transition-all active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-100 py-3.5 px-4 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all w-full sm:w-auto"
             >
-              <RotateCcw size={16} /> Return Items
+              <RotateCcw size={16} /> Return Order
             </Link>
           )}
           
           {(status === "cancelled" || status === "delivered" || status === "returned") && (
             <button
               onClick={() => onDelete(order._id)}
-              className="w-14 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-rose-100"
-              title="Delete Order"
+              className="sm:w-[50px] flex items-center justify-center bg-rose-50 text-rose-500 py-3.5 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 w-full sm:shrink-0 border border-rose-100 hover:border-rose-500"
+              title="Delete Order History"
             >
               <Trash2 size={18} />
             </button>

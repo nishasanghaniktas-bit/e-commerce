@@ -100,14 +100,6 @@ function AdminLayout() {
         {/* Footer Actions */}
         <div className="p-6 space-y-2 border-t border-slate-100">
           <button
-            onClick={() => navigate("settings")}
-            className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all font-semibold text-sm"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
-          
-          <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-all font-semibold text-sm"
           >
