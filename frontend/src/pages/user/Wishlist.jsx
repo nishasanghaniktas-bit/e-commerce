@@ -132,7 +132,7 @@ export default function Wishlist() {
               <div className="p-5 space-y-3">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-                    {product.category?.name || product.category || "General"}
+                    {typeof product.category === 'object' ? (product.category.name || "General") : (product.category || "General")}
                   </p>
                   <h3 className="text-base font-bold text-slate-900 truncate mt-0.5">
                     {product.name}

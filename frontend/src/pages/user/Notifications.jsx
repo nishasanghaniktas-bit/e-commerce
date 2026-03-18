@@ -276,21 +276,20 @@ export default function Notifications() {
                 {selectedNote.orderId && (
                   <div className="space-y-1">
                     <dt className="text-slate-500">Order</dt>
-                    <dd className="font-mono text-sm text-slate-800">{selectedNote.orderId}</dd>
+                    <dd className="font-mono text-sm text-slate-800 truncate">
+                      {typeof selectedNote.orderId === 'object' ? (selectedNote.orderId._id || selectedNote.orderId.id) : selectedNote.orderId}
+                    </dd>
                   </div>
                 )}
                 {selectedNote.productId && (
                   <div className="space-y-1">
                     <dt className="text-slate-500">Product</dt>
-                    <dd className="font-mono text-sm text-slate-800">{selectedNote.productId}</dd>
+                    <dd className="font-mono text-sm text-slate-800 truncate">
+                      {typeof selectedNote.productId === 'object' ? (selectedNote.productId.name || selectedNote.productId._id) : selectedNote.productId}
+                    </dd>
                   </div>
                 )}
-                {selectedNote.meta && Object.keys(selectedNote.meta || {}).length > 0 && (
-                  <div className="space-y-1 sm:col-span-2">
-                    <dt className="text-slate-500">Meta</dt>
-                    <dd className="font-mono text-xs bg-slate-900 text-slate-50 rounded-lg p-3 overflow-x-auto">{JSON.stringify(selectedNote.meta, null, 2)}</dd>
-                  </div>
-                )}
+
                 {selectedNote.link && (
                   <div className="sm:col-span-2">
                     <button

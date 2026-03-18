@@ -208,9 +208,11 @@ function Cart() {
                 <div className="flex-1 flex flex-col justify-center py-1">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-                      {item.category || "General"}
+                      {typeof item.category === "object" ? (item.category.name || "General") : (item.category || "General")}
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 leading-tight line-clamp-2">{item.name}</h3>
+                    <h3 className="text-lg font-bold text-slate-900 leading-tight line-clamp-2">
+                       {typeof item.name === 'object' ? (item.name.name || "Unnamed Product") : item.name}
+                    </h3>
                   </div>
                   <div className="mt-3 flex items-center gap-2 text-slate-400 font-semibold text-[10px] uppercase tracking-wider">
                     <ShieldCheck size={12} /> Genuine Local stock

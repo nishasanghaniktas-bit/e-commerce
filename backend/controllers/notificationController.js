@@ -86,7 +86,7 @@ exports.markAllAsRead = async (req, res) => {
   try {
     const userId = req.user && (req.user._id || req.user.id);
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    await Notification.updateMany({ $or: [{ userId }, { recipients: userId }], isRead: false }, { isRead: true });
+    await Notification.updateMany({ $or: [{ userId }, { recipients: userId }, { isGlobal: true }], isRead: false }, { isRead: true });
     res.json({ message: "All marked as read" });
   } catch (err) {
     res.status(500).json({ message: err.message });
