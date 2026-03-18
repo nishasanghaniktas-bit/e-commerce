@@ -11,6 +11,7 @@ export const getImageUrl = (imagePath) => {
 
   const trimmed = String(imagePath).trim();
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^data:image\//i.test(trimmed)) return trimmed; // already a data URI
 
   // normalize slashes to avoid mixed separators from Windows paths
   const normalized = trimmed.replace(/^\/+/, "").replace(/\\/g, "/");

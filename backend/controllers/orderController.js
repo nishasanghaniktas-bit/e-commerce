@@ -1,6 +1,7 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
+const { validateAgainstAmount } = require("./couponController");
 const Notification = require("../models/Notification");
 const { deductStock } = require("./productController");
 const { emitToAdmins, emitToUser } = require("../utils/socket");
@@ -17,7 +18,6 @@ exports.createOrder = async (req, res) => {
     const {
       items = [],
       subtotal = 0,
-      discount = 0,
       tax = 0,
       shippingCharge = 0,
       total = 0,
@@ -37,7 +37,20 @@ exports.createOrder = async (req, res) => {
       if (!ok) return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
     }
 
-    const calculatedTotal = total || (subtotal + tax + shippingCharge - discount);
+    let couponDiscount = 0;
+    let appliedCoupon = null;
+    let couponDoc = null;
+    if (couponCode) {
+      couponDoc = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true });
+      const result = validateAgainstAmount(couponDoc, subtotal);
+      if (!result.ok) {
+        return res.status(400).json({ message: result.message || "Coupon invalid" });
+      }
+      couponDiscount = result.discount;
+      appliedCoupon = { code: couponDoc.code, discount: couponDiscount };
+    }
+
+    const calculatedTotal = total || (subtotal + tax + shippingCharge - couponDiscount);
 
     const order = await Order.create({
       orderId: buildOrderId(),
@@ -61,13 +74,13 @@ exports.createOrder = async (req, res) => {
       }),
       pricing: {
         subtotal,
-        discount,
+        discount: couponDiscount,
         tax,
         shipping: shippingCharge,
         total: calculatedTotal,
       },
       totalAmount: calculatedTotal, // Compliance field
-      coupon: couponCode ? { code: couponCode, discount: discount } : undefined,
+      coupon: appliedCoupon || undefined,
       shippingAddress,
       paymentMethod: paymentMethod === "online" ? "Online" : "COD",
       paymentStatus: paymentStatus || (paymentMethod === "COD" ? "Pending" : "Pending"),
@@ -92,6 +105,14 @@ exports.createOrder = async (req, res) => {
       emitToUser(req.user._id, "notification", note);
     } catch (e) {
       console.error("Notification error:", e.message);
+    }
+
+    // bump coupon usage count (if still allowed)
+    if (appliedCoupon) {
+      await Coupon.updateOne(
+        { code: appliedCoupon.code, ...(couponDoc?.usageLimit ? { usedCount: { $lt: couponDoc.usageLimit } } : {}) },
+        { $inc: { usedCount: 1 } }
+      ).catch(() => {});
     }
 
     res.status(201).json({ message: "Order created", order });

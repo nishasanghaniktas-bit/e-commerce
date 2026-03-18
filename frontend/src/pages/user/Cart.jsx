@@ -1,6 +1,6 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { 
   Trash2, 
@@ -26,30 +26,80 @@ function Cart() {
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [showCoupons, setShowCoupons] = useState(false);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const tax = Math.round(cartTotal * 0.18);
   const shipping = cartTotal > 500 ? 0 : 50;
   const finalTotal = cartTotal + tax + shipping - discount;
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    if (!currentUser) {
-      navigate("/login");
+  const fetchAvailableCoupons = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await axios.get(`${API_BASE}/api/coupons?amount=${cartTotal}`, {
+        headers: { Authorization: `Bearer ${currentUser.token}` },
+      });
+      setAvailableCoupons(res.data?.coupons || []);
+      setShowCoupons(true);
+    } catch (err) {
+      setAvailableCoupons([]);
+      setShowCoupons(true);
+    }
+  };
+
+  const applyCoupon = async (code) => {
+    if (!code) return;
+    if (!currentUser) return navigate("/login");
+    if (appliedCoupon?.code === code.toUpperCase()) {
+      setCouponMessage("Coupon already applied");
       return;
     }
     try {
-      const res = await axios.post(`${API_BASE}/api/coupons/validate`, {
-        code: couponCode,
-        amount: cartTotal
-      }, { headers: { Authorization: `Bearer ${currentUser.token}` } });
-      setDiscount(res.data.discount || 0);
-      window.dispatchEvent(new CustomEvent("toast", { detail: { message: "Coupon applied", type: "success" } }));
+      setCouponLoading(true);
+      const res = await axios.post(
+        `${API_BASE}/api/coupons/validate`,
+        { code, amount: cartTotal },
+        { headers: { Authorization: `Bearer ${currentUser.token}` } }
+      );
+      const disc = res.data.discount || 0;
+      setCouponCode(code.toUpperCase());
+      setDiscount(disc);
+      setAppliedCoupon({ code: code.toUpperCase(), ...res.data });
+      setCouponMessage("Coupon Applied Successfully");
+      window.dispatchEvent(
+        new CustomEvent("toast", { detail: { message: "Coupon Applied Successfully", type: "success" } })
+      );
+      setShowCoupons(false);
     } catch (error) {
       const msg = error.response?.data?.message || "Invalid coupon code";
+      setCouponMessage(msg);
       window.dispatchEvent(new CustomEvent("toast", { detail: { message: msg, type: "error" } }));
       setDiscount(0);
+      setAppliedCoupon(null);
+    }
+    finally {
+      setCouponLoading(false);
     }
   };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setDiscount(0);
+    setCouponMessage("Coupon removed");
+  };
+
+  useEffect(() => {
+    // if cart total drops below min purchase, remove coupon automatically
+    if (appliedCoupon && appliedCoupon.minPurchase && cartTotal < appliedCoupon.minPurchase) {
+      setDiscount(0);
+      setAppliedCoupon(null);
+      setCouponMessage("Minimum purchase not met; coupon removed");
+    }
+  }, [cartTotal, appliedCoupon]);
 
   const handleCheckout = async () => {
     if (!currentUser) {
@@ -72,7 +122,8 @@ function Cart() {
         tax,
         shippingCharge: shipping,
         total: finalTotal,
-        couponCode: couponCode || undefined,
+        // only send coupon that has been validated/applied
+        couponCode: appliedCoupon?.code || undefined,
         paymentMethod: "cod",
         shippingAddress: {
           name: currentUser.name,
@@ -91,6 +142,7 @@ function Cart() {
       window.dispatchEvent(new CustomEvent("toast", { detail: { message: "Order placed", type: "success" } }));
       navigate("/user/orders");
     } catch (error) {
+      console.error("Order error", error.response?.data || error.message);
       const msg = error.response?.data?.message || "Order failed";
       window.dispatchEvent(new CustomEvent("toast", { detail: { message: msg, type: "error" } }));
     } finally {
@@ -212,20 +264,71 @@ function Cart() {
                 {/* Coupon */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Promo Code</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      placeholder="ENTER CODE"
-                      className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500"
-                    />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onFocus={fetchAvailableCoupons}
+                        onClick={fetchAvailableCoupons}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="ENTER CODE OR PICK BELOW"
+                        className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500"
+                      />
+                      <button
+                        onClick={() => applyCoupon(couponCode)}
+                        disabled={couponLoading}
+                        className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all"
+                      >
+                        {couponLoading ? "..." : "Apply"}
+                      </button>
+                      {appliedCoupon && (
+                        <button
+                          onClick={removeCoupon}
+                          className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    {couponMessage && (
+                      <p className={`text-xs font-semibold ${couponMessage.toLowerCase().includes("success") ? "text-emerald-300" : "text-amber-200"}`}>
+                        {couponMessage}
+                      </p>
+                    )}
                     <button
-                      onClick={handleApplyCoupon}
-                      className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all"
+                      onClick={fetchAvailableCoupons}
+                      className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-indigo-200 hover:text-white transition self-start"
                     >
-                      Apply
+                      <Ticket size={14} /> View available coupons
                     </button>
+                    {showCoupons && (
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto">
+                        {availableCoupons.length === 0 && (
+                          <p className="text-xs text-slate-200">No coupons available for this cart.</p>
+                        )}
+                        {availableCoupons.map((c) => (
+                          <div key={c._id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                            <div>
+                              <p className="text-sm font-bold text-white">{c.code}</p>
+                              <p className="text-[11px] text-slate-200">
+                                {c.discountType === "percentage"
+                                  ? `${c.discount}% off${c.maxDiscount ? ` (max ₹${c.maxDiscount})` : ""}`
+                                  : `Flat ₹${c.discount} off`}
+                                {c.minPurchase ? ` • Min ₹${c.minPurchase}` : ""}
+                                {c.usageLimit ? ` • Uses left: ${c.usageLeft ?? "-"}` : ""}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => applyCoupon(c.code)}
+                              className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white"
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
