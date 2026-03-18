@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const { config } = require('./config/env');
 
 const userSchema = new mongoose.Schema({}, { strict: false });
 const productSchema = new mongoose.Schema({}, { strict: false });
@@ -9,7 +9,7 @@ const Product = mongoose.model('Product', productSchema, 'products');
 
 async function check() {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/mobilesale');
+    await mongoose.connect(config.mongoUri);
     const products = await Product.find({});
     console.log('PRODUCTS COUNT:', products.length);
     products.forEach((p, idx) => {

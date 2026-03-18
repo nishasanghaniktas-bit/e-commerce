@@ -1,9 +1,9 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
+const { config } = require("./config/env");
 
 // Connect to DB
 connectDB();
@@ -67,7 +67,7 @@ app.use(
 );
 
 // Server (with Socket.IO)
-const PORT = process.env.PORT || 5000;
+const PORT = config.port;
 const http = require("http");
 const server = http.createServer(app);
 

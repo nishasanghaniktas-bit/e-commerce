@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const Notification = require("../models/Notification");
 const { emitToAdmins } = require("../utils/socket");
+const { config } = require("../config/env");
 
 
 /* ================= REGISTER ================= */
@@ -232,7 +233,7 @@ exports.forgotPassword = async (req, res) => {
 
         });
 
-        const resetURL = `http://localhost:5173/reset/${resetToken}`;
+        const resetURL = `${config.frontendUrl}/reset/${resetToken}`;
 
         await transporter.sendMail({
 

@@ -1,9 +1,10 @@
 const axios = require('axios');
+const { config } = require('./config/env');
 
 async function testLogin() {
     try {
         console.log("Testing with nisha.sanghani.ktas@gmail.com / nishaktas");
-        const res = await axios.post('http://localhost:5000/api/auth/login', {
+        const res = await axios.post(`${config.apiBaseUrl}/api/auth/login`, {
             email: 'nisha.sanghani.ktas@gmail.com',
             password: 'nishaktas'
         });

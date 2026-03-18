@@ -31,8 +31,12 @@ export default function Home() {
     const load = async () => {
       try {
         const res = await axios.get(`${API_BASE}/api/products`);
-        const data = res.data.data || res.data || [];
-        setProducts(data);
+        const payload = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+        setProducts(payload);
       } catch (err) {
         console.error("Failed to load neural assets", err);
       }
@@ -41,9 +45,10 @@ export default function Home() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    if (!search.trim()) return products;
+    const list = Array.isArray(products) ? products : [];
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return products.filter(
+    return list.filter(
       (p) =>
         p.name?.toLowerCase().includes(q) ||
         p.category?.toLowerCase().includes(q) ||
@@ -156,7 +161,7 @@ export default function Home() {
             <p className="text-slate-500 font-medium max-w-xl">Curated selection of high-end smartphones and professional accessories.</p>
           </div>
           <div className="text-sm text-slate-500 font-semibold">
-            Showing {filteredProducts.length} of {products.length} items
+            Showing {filteredProducts.length} of {Array.isArray(products) ? products.length : 0} items
           </div>
         </div>
         

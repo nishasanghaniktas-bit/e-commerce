@@ -56,10 +56,17 @@ function Register() {
         body: payload,
       });
 
-      const data = await response.json();
+      // Some error responses may be empty or not JSON; parse defensively
+      let data = null;
+      const text = await response.text();
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
 
       if (!response.ok) {
-        setError(data.message || "Registration failed");
+        setError(data?.message || "Registration failed");
         return;
       }
 
