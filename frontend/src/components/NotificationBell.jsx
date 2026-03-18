@@ -28,30 +28,27 @@ export default function NotificationBell() {
 
     fetchUnread();
 
+    // always listen for notification updates (even if socket fails)
+    const onUpdate = () => fetchUnread();
+    window.addEventListener("notifications:updated", onUpdate);
+
     // connect socket
-    let onUpdate;
     try {
       socketRef.current = io(API_BASE.replace(/\/$/, ""));
       socketRef.current.on("connect", () => {
         socketRef.current.emit("identify", { userId: user?._id, isAdmin: user?.role === "admin" });
       });
-      socketRef.current.on("notification", (note) => {
+      socketRef.current.on("notification", () => {
+        // optimistic increment; fetchUnread will correct any drift
         setUnread((u) => u + 1);
       });
-        // listen for client-side updates to refresh unread count
-        onUpdate = () => fetchUnread();
-        window.addEventListener("notifications:updated", onUpdate);
     } catch (e) {
       console.warn("Socket connection failed", e);
     }
 
     return () => {
       socketRef.current?.disconnect();
-      try {
-        if (onUpdate) window.removeEventListener("notifications:updated", onUpdate);
-      } catch (e) {
-        // noop
-      }
+      window.removeEventListener("notifications:updated", onUpdate);
     };
   }, [user]);
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import { API_BASE } from "../../utils/apiBase";
+import { toSearchString, buildSearchHaystack, categoryToString } from "../../utils/searchText";
 import { useCart } from "../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
 import { useToast } from "../../context/ToastContext";
@@ -38,13 +39,15 @@ export default function UserSearch() {
   }, [showToast]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = toSearchString(search);
     return products.filter((p) => {
-      const matchText =
-        p.name?.toLowerCase().includes(q) ||
-        p.category?.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q);
-      const matchCategory = category ? p.category === category : true;
+      const haystack = buildSearchHaystack(p);
+      const matchText = haystack.includes(q);
+
+      const catStr = toSearchString(categoryToString(p.category));
+      const matchCategory = category
+        ? catStr === toSearchString(category)
+        : true;
       return matchText && matchCategory;
     });
   }, [products, search, category]);

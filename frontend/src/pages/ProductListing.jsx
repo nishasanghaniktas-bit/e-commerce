@@ -16,6 +16,7 @@ import {
   History
 } from "lucide-react";
 import { API_BASE } from "../utils/apiBase";
+import { toSearchString, categoryToString, buildSearchHaystack } from "../utils/searchText";
 import { getImageUrl, getPlaceholder } from "../utils/imageUrl";
 import ProductCard from "../components/ProductCard";
 import SelectDropdown from "../components/SelectDropdown";
@@ -59,12 +60,9 @@ export default function ProductListing() {
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    if (searchQuery) {
-      filtered = filtered.filter(p => 
-        p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    const q = toSearchString(searchQuery);
+    if (q) {
+      filtered = filtered.filter((p) => buildSearchHaystack(p).includes(q));
     }
 
     if (filters.category) {

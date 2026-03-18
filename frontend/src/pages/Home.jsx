@@ -19,6 +19,7 @@ import {
   Database
 } from "lucide-react";
 import { API_BASE } from "../utils/apiBase";
+import { toSearchString, buildSearchHaystack } from "../utils/searchText";
 import { getImageUrl, getPlaceholder } from "../utils/imageUrl";
 import ProductCard from "../components/ProductCard";
 
@@ -47,13 +48,8 @@ export default function Home() {
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
     if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        p.category?.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q)
-    );
+    const q = toSearchString(search);
+    return list.filter((p) => buildSearchHaystack(p).includes(q));
   }, [products, search]);
 
   return (

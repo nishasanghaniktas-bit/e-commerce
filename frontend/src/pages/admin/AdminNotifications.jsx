@@ -131,6 +131,12 @@ export default function AdminNotifications() {
 
   const selectedNote = notes.find((n) => n._id === selectedId) || null;
 
+  // auto mark selected note as read when it becomes active
+  useEffect(() => {
+    if (selectedId) markRead(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
