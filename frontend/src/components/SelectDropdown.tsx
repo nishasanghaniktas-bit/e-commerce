@@ -22,10 +22,7 @@ type SelectDropdownProps = {
   buttonClassName?: string;
 };
 
-/**
- * Drop-in replacement for native selects using MUI menu primitives.
- * Keeps content unchanged while upgrading interactions + styling.
- */
+
 export default function SelectDropdown({
   value,
   onChange,
