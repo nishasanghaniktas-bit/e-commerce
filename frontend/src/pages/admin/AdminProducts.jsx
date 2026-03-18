@@ -33,6 +33,7 @@ const emptyForm = {
   image: "",
   images: [],
   brand: "",
+  specifications: [{ key: "", value: "" }],
 };
 
 function AdminProducts() {
@@ -95,6 +96,11 @@ function AdminProducts() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (!form.name || !form.category || form.price === "" || form.stock === "") {
+      alert("Please fill in all required fields (Name, Category, Price, Stock).");
+      return;
+    }
+
     try {
       const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
       const formData = new FormData();
@@ -106,10 +112,14 @@ function AdminProducts() {
       formData.append("stock", form.stock);
       formData.append("description", form.description);
       if (form.brand) formData.append("brand", form.brand);
+      
+      const specs = (form.specifications || []).filter(s => s.key && s.key.trim() !== "");
+      if (specs.length > 0) formData.append("specifications", JSON.stringify(specs));
+
       if (form.image && !imageFile) formData.append("image", form.image);
       if (imageFile) formData.append("image", imageFile);
 
-      galleryFiles.slice(0, 4).forEach((file) => formData.append("images", file));
+      galleryFiles.forEach((file) => formData.append("images", file));
 
       if (!galleryFiles.length && Array.isArray(form.images)) {
         form.images.forEach((img) => formData.append("images", img));
@@ -164,6 +174,7 @@ function AdminProducts() {
       subcategory: subVal,
       peta_subcategory: petaVal,
       images: product.images || [],
+      specifications: product.specifications && product.specifications.length > 0 ? product.specifications : [{ key: "", value: "" }],
     });
     if (catVal) {
       fetch(`${API_BASE}/api/categories/${catVal}/subcategories`).then(r => r.ok ? r.json() : []).then(d => setSubcategories(d)).catch(() => setSubcategories([]));
@@ -438,8 +449,8 @@ function AdminProducts() {
                     <div className="relative group min-h-[140px]">
                       <div className="absolute inset-0 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-200 group-hover:border-indigo-400 transition-all overflow-hidden">
                         {galleryFiles.length > 0 || (form.images && form.images.length > 0) ? (
-                          <div className="grid grid-cols-2 gap-1 p-2 w-full h-full">
-                            {(galleryFiles.length > 0 ? galleryFiles : form.images).slice(0, 4).map((file, idx) => (
+                          <div className="grid grid-cols-2 gap-1 p-2 w-full h-full overflow-y-auto">
+                            {(galleryFiles.length > 0 ? galleryFiles : form.images).map((file, idx) => (
                               <img
                                 key={idx}
                                 src={typeof file === "string" ? (file.startsWith("http") ? file : `${API_BASE}/${file}`) : URL.createObjectURL(file)}
@@ -451,7 +462,7 @@ function AdminProducts() {
                         ) : (
                           <div className="text-center">
                             <Plus className="mx-auto mb-1 text-slate-400" size={20} />
-                            <p className="text-xs font-semibold text-slate-500">Gallery (Max 4)</p>
+                            <p className="text-xs font-semibold text-slate-500">Gallery</p>
                           </div>
                         )}
                       </div>
@@ -460,7 +471,7 @@ function AdminProducts() {
                         accept="image/*"
                         multiple
                         className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => setGalleryFiles(Array.from(e.target.files || []).slice(0, 4))}
+                        onChange={(e) => setGalleryFiles(Array.from(e.target.files || []))}
                       />
                     </div>
                     {(galleryFiles.length > 0 || (form.images && form.images.length > 0)) && (
@@ -536,44 +547,49 @@ function AdminProducts() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 px-1">Subcategory</label>
-                    <div className="relative group">
-                      <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <SelectDropdown
-                        value={form.subcategory}
-                        onChange={async (val) => {
-                          const valStr = val;
-                          setForm({ ...form, subcategory: valStr, peta_subcategory: "" });
-                          if (valStr) {
-                            try {
-                              const res = await fetch(`${API_BASE}/api/categories/subcategories/${valStr}/petasubcategories`);
-                              if (res.ok) {
-                                const data = await res.json();
-                                setPetaSubcategories(data);
-                              } else setPetaSubcategories([]);
-                            } catch (err) { setPetaSubcategories([]); }
-                          } else setPetaSubcategories([]);
-                        }}
-                        options={[{ value: "", label: "Select Subcategory" }, ...(subcategories || []).map((s) => ({ value: s._id, label: s.name }))]}
-                        className="w-full"
-                        buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-lg pl-11 pr-10 py-3 text-sm font-medium"
-                      />
+                  {subcategories && subcategories.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 px-1">Subcategory</label>
+                      <div className="relative group">
+                        <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <SelectDropdown
+                          value={form.subcategory}
+                          onChange={async (val) => {
+                            const valStr = val;
+                            setForm({ ...form, subcategory: valStr, peta_subcategory: "" });
+                            if (valStr) {
+                              try {
+                                const res = await fetch(`${API_BASE}/api/categories/subcategories/${valStr}/petasubcategories`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setPetaSubcategories(data);
+                                } else setPetaSubcategories([]);
+                              } catch (err) { setPetaSubcategories([]); }
+                            } else setPetaSubcategories([]);
+                          }}
+                          options={[{ value: "", label: "Select Subcategory" }, ...(subcategories || []).map((s) => ({ value: s._id, label: s.name }))]}
+                          className="w-full"
+                          buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-lg pl-11 pr-10 py-3 text-sm font-medium"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 px-1">Peta Subcategory</label>
-                    <div className="relative group">
-                      <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <SelectDropdown
-                        value={form.peta_subcategory}
-                        onChange={(val) => setForm({ ...form, peta_subcategory: val })}
-                        options={[{ value: "", label: "Select Peta Subcategory" }, ...(petaSubcategories || []).map((p) => ({ value: p._id, label: p.name }))]}
-                        className="w-full"
-                        buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-lg pl-11 pr-10 py-3 text-sm font-medium"
-                      />
+                  )}
+
+                  {petaSubcategories && petaSubcategories.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700 px-1">Peta Subcategory</label>
+                      <div className="relative group">
+                        <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <SelectDropdown
+                          value={form.peta_subcategory}
+                          onChange={(val) => setForm({ ...form, peta_subcategory: val })}
+                          options={[{ value: "", label: "Select Peta Subcategory" }, ...(petaSubcategories || []).map((p) => ({ value: p._id, label: p.name }))]}
+                          className="w-full"
+                          buttonClassName="w-full bg-slate-50 border border-slate-200 rounded-lg pl-11 pr-10 py-3 text-sm font-medium"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -630,6 +646,64 @@ function AdminProducts() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-sm font-semibold text-slate-700">Specifications</label>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, specifications: [...(form.specifications || []), { key: "", value: "" }] })}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                    >
+                      + Add Field
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {(form.specifications || []).length === 0 && (
+                      <div className="text-center p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                        <p className="text-sm font-medium text-slate-500">No specifications added</p>
+                      </div>
+                    )}
+                    {(form.specifications || []).map((spec, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <input
+                          type="text"
+                          placeholder="Name (e.g. Display)"
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm font-medium transition-all"
+                          value={spec.key}
+                          onChange={(e) => {
+                            const newSpecs = [...(form.specifications || [])];
+                            newSpecs[idx] = { ...spec, key: e.target.value };
+                            setForm({ ...form, specifications: newSpecs });
+                          }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Value (e.g. 6.1-inch OLED)"
+                          className="flex-[2] bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm font-medium transition-all"
+                          value={spec.value}
+                          onChange={(e) => {
+                            const newSpecs = [...(form.specifications || [])];
+                            newSpecs[idx] = { ...spec, value: e.target.value };
+                            setForm({ ...form, specifications: newSpecs });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSpecs = (form.specifications || []).filter((_, i) => i !== idx);
+                            setForm({ ...form, specifications: newSpecs });
+                          }}
+                          className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors shrink-0"
+                          title="Remove"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-4 flex gap-3">

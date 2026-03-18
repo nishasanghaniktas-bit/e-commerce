@@ -14,10 +14,10 @@ const {
 router.get("/", getProducts);
 router.get("/:id", getProductById);
 
-// Admin CRUD (supports single cover + up to 4 gallery images)
+// Admin CRUD (supports single cover + unlimited gallery images)
 const productUpload = upload.fields([
   { name: "image", maxCount: 1 },
-  { name: "images", maxCount: 4 },
+  { name: "images" },
 ]);
 router.post("/", protect, admin, productUpload, addProduct);
 router.put("/:id", protect, admin, productUpload, updateProduct);

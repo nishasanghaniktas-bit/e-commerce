@@ -32,7 +32,7 @@ exports.addProduct = async (req, res) => {
         files.image?.[0]?.path?.replace(/\\/g, "/") ||
         galleryUploads[0],
       images: [...bodyImages, ...galleryUploads].filter(Boolean),
-      specifications: req.body.specifications,
+      specifications: typeof req.body.specifications === 'string' ? JSON.parse(req.body.specifications) : req.body.specifications,
       tags: req.body.tags,
       isFeatured: req.body.isFeatured,
       isFlashSale: req.body.isFlashSale,
@@ -196,6 +196,14 @@ exports.updateProduct = async (req, res) => {
         files.image?.[0]?.path?.replace(/\\/g, "/") ||
         galleryUploads[0],
     };
+
+    if (req.body.specifications && typeof req.body.specifications === 'string') {
+      try {
+        update.specifications = JSON.parse(req.body.specifications);
+      } catch (e) {
+        console.error("Failed to parse specifications:", e);
+      }
+    }
 
     if (bodyImages.length || galleryUploads.length) {
       update.images = [...bodyImages, ...galleryUploads].filter(Boolean);

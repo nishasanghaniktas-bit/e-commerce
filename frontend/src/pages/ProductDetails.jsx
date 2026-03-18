@@ -212,7 +212,7 @@ export default function ProductDetails({ showCartAction = true }) {
                 </div>
               </div>
 
-              <p className="text-slate-600 leading-relaxed text-base">
+              <p className="text-slate-600 leading-relaxed text-base whitespace-pre-wrap">
                 {product.description}
               </p>
 
@@ -298,7 +298,7 @@ export default function ProductDetails({ showCartAction = true }) {
             {activeTab === "description" && (
               <div className="max-w-4xl mx-auto space-y-6">
                 <h3 className="text-2xl font-bold text-slate-900">Product Overview</h3>
-                <p className="text-slate-600 leading-relaxed text-lg">
+                <p className="text-slate-600 leading-relaxed text-lg whitespace-pre-wrap">
                   {product.description || "Detailed description not available for this item."}
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6">
@@ -316,13 +316,16 @@ export default function ProductDetails({ showCartAction = true }) {
 
             {activeTab === "specifications" && (
               <div className="max-w-4xl mx-auto border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                {product.specifications && Object.keys(product.specifications).length > 0 ? (
+                {product.specifications && (Array.isArray(product.specifications) ? product.specifications.length > 0 : Object.keys(product.specifications).length > 0) ? (
                   <table className="w-full text-left border-collapse">
                     <tbody>
-                      {Object.entries(product.specifications).map(([key, value], i) => (
+                      {(Array.isArray(product.specifications) 
+                        ? product.specifications 
+                        : Object.entries(product.specifications).map(([k, v]) => ({ key: k, value: String(v) }))
+                      ).map((spec, i) => (
                         <tr key={i} className="border-b border-slate-100 last:border-0">
-                          <th className="bg-slate-50 py-4 px-6 text-sm font-semibold text-slate-600 w-1/3">{key}</th>
-                          <td className="py-4 px-6 text-sm text-slate-800 bg-white">{value}</td>
+                          <th className="bg-slate-50 py-4 px-6 text-sm font-semibold text-slate-600 w-1/3">{spec.key}</th>
+                          <td className="py-4 px-6 text-sm text-slate-800 bg-white">{String(spec.value)}</td>
                         </tr>
                       ))}
                     </tbody>

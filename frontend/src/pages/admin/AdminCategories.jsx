@@ -19,7 +19,7 @@ import {
 export default function AdminCategories() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: "", description: "", image: "", subcategories: [] });
+  const [form, setForm] = useState({ name: "", description: "", image: "", subcategories: [{ name: "", petas: [""] }] });
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,16 +46,31 @@ export default function AdminCategories() {
     e.preventDefault();
     try {
       const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
+
+      // Clean up empty subcategories and petas
+      const cleanedForm = {
+        ...form,
+        subcategories: (form.subcategories || [])
+          .filter(sub => {
+            const name = typeof sub === 'string' ? sub : sub.name;
+            return name && name.trim() !== '';
+          })
+          .map(sub => ({
+            name: typeof sub === 'string' ? sub : sub.name,
+            petas: (sub.petas || []).filter(p => p && p.trim() !== '')
+          }))
+      };
+
       if (editing) {
-        await axios.put(`${API_BASE}/api/categories/${editing}`, form, { 
+        await axios.put(`${API_BASE}/api/categories/${editing}`, cleanedForm, { 
           headers: { Authorization: `Bearer ${token}` } 
         });
       } else {
-        await axios.post(`${API_BASE}/api/categories`, form, { 
+        await axios.post(`${API_BASE}/api/categories`, cleanedForm, { 
           headers: { Authorization: `Bearer ${token}` } 
         });
       }
-      setForm({ name: "", description: "", image: "", subcategories: [] });
+      setForm({ name: "", description: "", image: "", subcategories: [{ name: "", petas: [""] }] });
       setEditing(null);
       fetchCategories();
     } catch (error) {
@@ -147,7 +162,13 @@ export default function AdminCategories() {
                                 value={name}
                                 onChange={(e) => {
                                   const subs = [...(form.subcategories || [])];
-                                  subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name: e.target.value, petas: petas };
+                                  const val = e.target.value;
+                                  subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name: val, petas: petas };
+                                  
+                                  if (idx === subs.length - 1 && val.trim() !== "") {
+                                    subs.push({ name: "", petas: [""] });
+                                  }
+                                  
                                   setForm({ ...form, subcategories: subs });
                                 }}
                                 className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm"
@@ -162,11 +183,17 @@ export default function AdminCategories() {
                                 {petas.map((p, pidx) => (
                                   <div key={pidx} className="flex items-center gap-2">
                                     <input type="text" value={p} placeholder="Peta name" onChange={(e) => {
-                                      const subs = [...(form.subcategories || [])];
-                                      const target = subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name, petas: [...petas] };
-                                      target.petas[pidx] = e.target.value;
-                                      setForm({ ...form, subcategories: subs });
-                                    }} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                        const subs = [...(form.subcategories || [])];
+                                        const val = e.target.value;
+                                        const target = subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name, petas: [...petas] };
+                                        target.petas[pidx] = val;
+                                        
+                                        if (pidx === target.petas.length - 1 && val.trim() !== "") {
+                                          target.petas.push("");
+                                        }
+                                        
+                                        setForm({ ...form, subcategories: subs });
+                                      }} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
                                     <button type="button" onClick={() => {
                                       const subs = [...(form.subcategories || [])];
                                       const target = subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name, petas: [...petas] };
@@ -175,16 +202,10 @@ export default function AdminCategories() {
                                     }} className="p-2 bg-rose-50 text-rose-600 rounded-lg">Remove</button>
                                   </div>
                                 ))}
-                                <button type="button" onClick={() => {
-                                  const subs = [...(form.subcategories || [])];
-                                  subs[idx] = { ...(typeof subs[idx] === 'object' ? subs[idx] : {}), name, petas: [...petas, ""] };
-                                  setForm({ ...form, subcategories: subs });
-                                }} className="text-xs font-bold text-indigo-600">+ Add peta subcategory</button>
                               </div>
                             </div>
                           </div>
                         )})}
-                        <button type="button" onClick={() => setForm({ ...form, subcategories: [...(form.subcategories||[]), { name: "", petas: [] }] })} className="text-xs font-bold text-indigo-600">+ Add subcategory</button>
                       </div>
                   </div>
               </div>
@@ -199,7 +220,7 @@ export default function AdminCategories() {
                 {editing && (
                   <button 
                     type="button" 
-                    onClick={() => { setEditing(null); setForm({ name: "", description: "", image: "" }); }} 
+                    onClick={() => { setEditing(null); setForm({ name: "", description: "", image: "", subcategories: [{ name: "", petas: [""] }] }); }} 
                     className="p-3 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition"
                   >
                     <X size={20} />
@@ -279,11 +300,20 @@ export default function AdminCategories() {
                                 try {
                                   const token = JSON.parse(localStorage.getItem("currentUser"))?.token;
                                   const res = await axios.get(`${API_BASE}/api/categories/${cat._id}/subcategories`, { headers: { Authorization: `Bearer ${token}` } });
-                                  const subs = res.data.map(s => ({ name: s.name, petas: (s.petas||[]).map(p => p.name) }));
+                                  const subs = res.data.map(s => {
+                                    const petasArray = (s.petas||[]).map(p => p.name);
+                                    if (petasArray.length === 0 || petasArray[petasArray.length - 1] !== "") {
+                                      petasArray.push("");
+                                    }
+                                    return { name: s.name, petas: petasArray };
+                                  });
+                                  if (subs.length === 0 || subs[subs.length - 1].name !== "") {
+                                    subs.push({ name: "", petas: [""] });
+                                  }
                                   setForm({ name: cat.name, description: cat.description, image: cat.image, subcategories: subs });
                                   setEditing(cat._id);
                                 } catch (err) {
-                                  setForm({ name: cat.name, description: cat.description, image: cat.image, subcategories: [] });
+                                  setForm({ name: cat.name, description: cat.description, image: cat.image, subcategories: [{ name: "", petas: [""] }] });
                                   setEditing(cat._id);
                                 }
                               }} 
