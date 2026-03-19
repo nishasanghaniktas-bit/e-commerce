@@ -19,7 +19,11 @@ import {
   Edit,
   DollarSign,
   Tag,
-  Hash
+  Hash,
+  List,
+  LayoutGrid,
+  TrendingUp,
+  AlertCircle
 } from "lucide-react";
 
 const emptyForm = {
